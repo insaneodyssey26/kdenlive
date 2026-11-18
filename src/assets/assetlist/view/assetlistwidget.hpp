@@ -133,6 +133,7 @@ protected:
     KMessageWidget *m_infoBar;
     bool eventFilter(QObject *obj, QEvent *event) override;
     QSplitter *m_viewSplitter;
+    QList<QPersistentModelIndex> m_expandedCategories;
 
 private Q_SLOTS:
     /** @brief Display the context menu */

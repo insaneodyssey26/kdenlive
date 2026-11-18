@@ -493,8 +493,19 @@ void AssetListWidget::setFilterName(const QString &pattern)
 {
     QItemSelectionModel *sel = m_effectsTree->selectionModel();
     QModelIndex current = m_proxyModel->getModelIndex(sel->currentIndex());
-    m_proxyModel->setFilterName(!pattern.isEmpty(), pattern);
+    bool wasFiltered = !m_searchLine->text().isEmpty();
     if (!pattern.isEmpty()) {
+        if (!wasFiltered || m_expandedCategories.isEmpty()) {
+            m_expandedCategories.clear();
+            QVariantList cats = m_proxyModel->getCategories();
+            for (const auto &cat : cats) {
+                QModelIndex idx = cat.toModelIndex();
+                if (m_effectsTree->isExpanded(idx)) {
+                    m_expandedCategories << QPersistentModelIndex(m_proxyModel->mapToSource(idx));
+                }
+            }
+        }
+        m_proxyModel->setFilterName(true, pattern);
         QVariantList mapped = m_proxyModel->getCategories();
         for (auto &ix : mapped) {
             m_effectsTree->setExpanded(ix.toModelIndex(), true);
@@ -503,6 +514,14 @@ void AssetListWidget::setFilterName(const QString &pattern)
         sel->setCurrentIndex(ix, QItemSelectionModel::ClearAndSelect);
         m_effectsTree->scrollTo(ix);
     } else {
+        m_proxyModel->setFilterName(false, pattern);
+        m_effectsTree->collapseAll();
+        for (const auto &pIdx : std::as_const(m_expandedCategories)) {
+            if (pIdx.isValid()) {
+                m_effectsTree->setExpanded(m_proxyModel->mapFromSource(pIdx), true);
+            }
+        }
+        m_expandedCategories.clear();
         m_effectsTree->scrollTo(m_proxyModel->mapFromSource(current));
     }
 }

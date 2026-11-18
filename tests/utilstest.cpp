@@ -6,6 +6,7 @@
 #include "catch.hpp"
 #include "test_utils.hpp"
 // test specific headers
+#include "filefilter.h"
 #include "utils/gentime.h"
 #include "utils/qstringutils.h"
 #include "utils/timecode.h"
@@ -30,6 +31,36 @@ TEST_CASE("Testing for different utils", "[Utils]")
         }
 
         REQUIRE(names.removeDuplicates() == 0);
+    }
+
+    SECTION("FileFilter contains case-insensitive extensions")
+    {
+        QStringList extList = FileFilter::getExtensions();
+        REQUIRE(extList.contains(QStringLiteral("*.mp4")));
+        REQUIRE(extList.contains(QStringLiteral("*.MP4")));
+        REQUIRE(extList.contains(QStringLiteral("*.png")));
+        REQUIRE(extList.contains(QStringLiteral("*.PNG")));
+        REQUIRE(extList.contains(QStringLiteral("*.jpg")));
+        REQUIRE(extList.contains(QStringLiteral("*.JPG")));
+        REQUIRE(extList.contains(QStringLiteral("*.wav")));
+        REQUIRE(extList.contains(QStringLiteral("*.WAV")));
+
+        // Ensure no duplicates in getExtensions()
+        QStringList uniqueExtList = extList;
+        REQUIRE(uniqueExtList.removeDuplicates() == 0);
+
+        // Check Builder::toQFilter() contains uppercase patterns
+        QString qfilter = FileFilter::Builder().setCategories({FileFilter::Video, FileFilter::Image}).toQFilter();
+        REQUIRE(qfilter.contains(QStringLiteral("*.mp4")));
+        REQUIRE(qfilter.contains(QStringLiteral("*.MP4")));
+        REQUIRE(qfilter.contains(QStringLiteral("*.png")));
+        REQUIRE(qfilter.contains(QStringLiteral("*.PNG")));
+
+        // Check Builder::toKFilter() contains uppercase patterns
+        QList<KFileFilter> kfilters = FileFilter::Builder().setCategories({FileFilter::Video}).toKFilter();
+        REQUIRE(kfilters.count() == 1);
+        REQUIRE(kfilters.first().filePatterns().contains(QStringLiteral("*.mp4")));
+        REQUIRE(kfilters.first().filePatterns().contains(QStringLiteral("*.MP4")));
     }
 }
 

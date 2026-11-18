@@ -114,8 +114,15 @@ static void initFilterDb() {
                 globs.append(manualMap.value(name));
             }
 
-            supported_file_exts[category].append(globs);
+            QStringList expandedGlobs;
+            for (const auto &glob : std::as_const(globs)) {
+                expandedGlobs.append(glob.toLower());
+                expandedGlobs.append(glob.toUpper());
+            }
+
+            supported_file_exts[category].append(expandedGlobs);
         }
+        supported_file_exts[category].removeDuplicates();
     }
 }
 
@@ -165,17 +172,22 @@ static QStringList query(Category cat)
         }
 
         for (const auto& ext : customs) {
+            QString pattern;
             if (ext.startsWith("*.")) {
-                user.append(ext);
+                pattern = ext;
             } else if (ext.startsWith(".")) {
-                user.append(qsl("*") + ext);
+                pattern = qsl("*") + ext;
             } else if (!ext.startsWith('.')) {
-                user.append(qsl("*.") + ext);
+                pattern = qsl("*.") + ext;
             } else {
                 qCDebug(KDENLIVE_LOG) << "Unrecognized custom format: " << ext;
+                continue;
             }
+            user.append(pattern.toLower());
+            user.append(pattern.toUpper());
         }
 
+        user.removeDuplicates();
         return user;
     }
 

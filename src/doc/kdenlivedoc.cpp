@@ -154,8 +154,7 @@ KdenliveDoc::KdenliveDoc(std::shared_ptr<DocUndoStack> undoStack, std::pair<int,
     pCore->taskManager.unBlock();
 }
 
-DocOpenResult KdenliveDoc::Open(const QUrl &url, const QString &projectFolder, QUndoGroup *undoGroup,
-    bool recoverCorruption, MainWindow *parent)
+DocOpenResult KdenliveDoc::Open(const QUrl &url, const QString &projectFolder, QUndoGroup *undoGroup, bool recoverCorruption, MainWindow *parent)
 {
 
     DocOpenResult result = DocOpenResult{};
@@ -229,7 +228,6 @@ DocOpenResult KdenliveDoc::Open(const QUrl &url, const QString &projectFolder, Q
     }
     file.close();
 
-
     qCDebug(KDENLIVE_LOG) << "// validating project file";
     DocumentValidator validator(domDoc, url);
     bool success = validator.isProject();
@@ -285,7 +283,7 @@ DocOpenResult KdenliveDoc::Open(const QUrl &url, const QString &projectFolder, Q
     auto doc = std::unique_ptr<KdenliveDoc>(new KdenliveDoc(url, domDoc, projectFolder, undoGroup, parent));
     if (!validationResult.second.isEmpty()) {
         doc->m_modifiedDecimalPoint = validationResult.second;
-        //doc->setModifiedDecimalPoint(validationResult.second);
+        // doc->setModifiedDecimalPoint(validationResult.second);
     }
     if (!doc->loadDocumentProperties()) {
         result.setAborted();
@@ -2227,6 +2225,19 @@ void KdenliveDoc::switchProfile(ProfileParam *pf, const QString &clipName)
     if (adjusted) {
         adjustMessage = i18n("Warning: non standard fps, adjusting to closest integer. ");
     }
+
+    if (pCore->getCurrentProfile() && *profile == *pCore->getCurrentProfile()) {
+        // Project profile already matches clip profile
+        return;
+    }
+
+    const QString profileKey =
+        QStringLiteral("%1x%2_%3_%4").arg(profile->width()).arg(profile->height()).arg(profile->frame_rate_num()).arg(profile->frame_rate_den());
+    if (m_declinedProfiles.contains(profileKey)) {
+        // User already declined switching to this profile in the current batch
+        return;
+    }
+
     QString matchingProfile = ProfileRepository::get()->findMatchingProfile(profile.get());
     if (matchingProfile.isEmpty() && (profile->width() % 2 != 0)) {
         // Make sure profile width is a multiple of 8, required by some parts of mlt
@@ -2258,8 +2269,10 @@ void KdenliveDoc::switchProfile(ProfileParam *pf, const QString &clipName)
                 Q_EMIT docModified(true);
                 return;
             case KMessageBox::SecondaryAction:
+                m_declinedProfiles.insert(profileKey);
                 return;
             default:
+                m_declinedProfiles.insert(profileKey);
                 break;
             }
         }
@@ -2293,6 +2306,8 @@ void KdenliveDoc::switchProfile(ProfileParam *pf, const QString &clipName)
             pCore->setCurrentProfile(profilePath);
             updateProjectProfile(true, true);
             Q_EMIT docModified(true);
+        } else {
+            m_declinedProfiles.insert(profileKey);
         }
     }
 }

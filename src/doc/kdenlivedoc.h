@@ -361,7 +361,7 @@ private:
     QMap<QUuid, QMap<QString, QString>> m_sequenceProperties;
     QUuid m_filteredTimelineUuid;
     QSet<QUuid> m_sequenceThumbsNeedsRefresh;
-    QSet<QString> m_declinedProfiles;
+    QSet<QString> m_proposedProfiles;
 
     QString m_modifiedDecimalPoint;
     /** @brief A list of guide models for this project (one for each timeline). */
@@ -398,7 +398,7 @@ public Q_SLOTS:
      *
      * The autosave files are in ~/.kde/data/stalefiles/kdenlive/ */
     void slotAutoSave(const QString &scene);
-    void switchProfile(ProfileParam *pf, const QString &clipName);
+    void switchProfile(ProfileParam *pf, const QString &clipName, bool force = false);
 
 private Q_SLOTS:
     void slotModified();

@@ -2211,7 +2211,7 @@ std::pair<int, int> KdenliveDoc::getFpsFraction(double fps, bool *adjusted)
     return {m_frame_rate_num, m_frame_rate_den};
 }
 
-void KdenliveDoc::switchProfile(ProfileParam *pf, const QString &clipName)
+void KdenliveDoc::switchProfile(ProfileParam *pf, const QString &clipName, bool force)
 {
     // Request profile update
     // Check profile fps so that we don't end up with an fps = 30.003 which would mess things up
@@ -2227,15 +2227,15 @@ void KdenliveDoc::switchProfile(ProfileParam *pf, const QString &clipName)
     }
 
     if (pCore->getCurrentProfile() && *profile == *pCore->getCurrentProfile()) {
-        // Project profile already matches clip profile
         return;
     }
 
-    const QString profileKey =
-        QStringLiteral("%1x%2_%3_%4").arg(profile->width()).arg(profile->height()).arg(profile->frame_rate_num()).arg(profile->frame_rate_den());
-    if (m_declinedProfiles.contains(profileKey)) {
-        // User already declined switching to this profile in the current batch
-        return;
+    const QString profileKey = profile->profileKey();
+    if (!force) {
+        if (m_proposedProfiles.contains(profileKey)) {
+            return;
+        }
+        m_proposedProfiles.insert(profileKey);
     }
 
     QString matchingProfile = ProfileRepository::get()->findMatchingProfile(profile.get());
@@ -2269,10 +2269,8 @@ void KdenliveDoc::switchProfile(ProfileParam *pf, const QString &clipName)
                 Q_EMIT docModified(true);
                 return;
             case KMessageBox::SecondaryAction:
-                m_declinedProfiles.insert(profileKey);
                 return;
             default:
-                m_declinedProfiles.insert(profileKey);
                 break;
             }
         }
@@ -2306,8 +2304,6 @@ void KdenliveDoc::switchProfile(ProfileParam *pf, const QString &clipName)
             pCore->setCurrentProfile(profilePath);
             updateProjectProfile(true, true);
             Q_EMIT docModified(true);
-        } else {
-            m_declinedProfiles.insert(profileKey);
         }
     }
 }

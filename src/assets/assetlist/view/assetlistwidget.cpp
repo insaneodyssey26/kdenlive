@@ -522,7 +522,11 @@ void AssetListWidget::setFilterName(const QString &pattern)
             }
         }
         m_expandedCategories.clear();
-        m_effectsTree->scrollTo(m_proxyModel->mapFromSource(current));
+        QModelIndex currentProxy = sel->currentIndex();
+        if (currentProxy.isValid() && currentProxy.parent().isValid()) {
+            m_effectsTree->setExpanded(currentProxy.parent(), true);
+        }
+        m_effectsTree->scrollTo(currentProxy);
     }
 }
 
